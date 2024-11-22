@@ -1,27 +1,28 @@
-﻿using MongoDB.Driver;
+﻿using Microsoft.Extensions.Options;
+using MongoDB.Driver;
 
 namespace GsMS
 {
     public class MongoDBService
     {
-        private const string DB_URL = "mongodb://localhost:27017";
-        private readonly IMongoCollection<Consumo> _consumptionCollection;
+        private readonly IMongoCollection<Consumo> _consumoCollection;
 
-        public MongoDBService(IConfiguration config)
+        public MongoDBService(IOptions<MongoDBSettings> mongoDBSettings)
         {
-            var client = new MongoClient(DB_URL);
-            var database = client.GetDatabase("EnergyConsumptionDB");
-            _consumptionCollection = database.GetCollection<Consumo>("Consumos");
+            var settings = mongoDBSettings.Value;
+            var client = new MongoClient(settings.ConnectionString);
+            var database = client.GetDatabase(settings.DatabaseName);
+            _consumoCollection = database.GetCollection<Consumo>(settings.CollectionName);
         }
 
-        public async Task CreateAsync(Consumo consumption)
+        public async Task CreateAsync(Consumo consumo)
         {
-            await _consumptionCollection.InsertOneAsync(consumption);
+            await _consumoCollection.InsertOneAsync(consumo);
         }
 
         public async Task<List<Consumo>> GetAsync()
         {
-            return await _consumptionCollection.Find(_ => true).ToListAsync();
+            return await _consumoCollection.Find(_ => true).ToListAsync();
         }
     }
 }

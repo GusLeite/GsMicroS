@@ -1,20 +1,22 @@
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using MongoDB.Driver;
+using GsMS;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Add services to the container.
 builder.Services.Configure<MongoDBSettings>(builder.Configuration.GetSection("MongoDB"));
-
 builder.Services.AddSingleton<MongoDBService>();
-
 builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
+// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
+    app.UseSwagger();
+    app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1"));
 }
 
 app.UseHttpsRedirection();
@@ -24,40 +26,3 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
-
-public class MongoDBService
-{
-    private readonly IMongoCollection<Consumo> _consumptionCollection;
-
-    public MongoDBService(IConfiguration config)
-    {
-        var mongoSettings = config.GetSection("MongoDB").Get<MongoDBSettings>();
-        var client = new MongoClient(mongoSettings.ConnectionString);
-        var database = client.GetDatabase(mongoSettings.DatabaseName);
-        _consumptionCollection = database.GetCollection<Consumo>(mongoSettings.CollectionName);
-    }
-
-    public async Task CreateAsync(Consumo consumption)
-    {
-        await _consumptionCollection.InsertOneAsync(consumption);
-    }
-
-    public async Task<List<Consumo>> GetAsync()
-    {
-        return await _consumptionCollection.Find(_ => true).ToListAsync();
-    }
-}
-
-public class MongoDBSettings
-{
-    public string ConnectionString { get; set; }
-    public string DatabaseName { get; set; }
-    public string CollectionName { get; set; }
-}
-
-public class Consumo
-{
-    public string Id { get; set; }
-    public DateTime Date { get; set; }
-    public double Consumption { get; set; }
-}
